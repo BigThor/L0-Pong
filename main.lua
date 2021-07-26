@@ -68,6 +68,7 @@ end
     passes in the key pressed so it can be accessed.
 ]]
 function love.keypressed(key)
+    -- exit game
     if key == 'escape' then
         love.event.quit()
     elseif key == 'enter' or key == 'return' then
@@ -87,6 +88,7 @@ end
 function love.draw()
     push:start()
 
+    -- display title
     love.graphics.setFont(smallFont)
     love.graphics.printf(
         'Hello Pong!',
@@ -96,14 +98,18 @@ function love.draw()
         'center' -- alignment
     )
 
+    -- display score
     love.graphics.setFont(bigFont)
     love.graphics.print(tostring(player1Score), VIRTUAL_WIDTH / 2 - 50,
         VIRTUAL_HEIGHT / 3)
     love.graphics.print(tostring(player2Score), VIRTUAL_WIDTH / 2 + 25,
         VIRTUAL_HEIGHT / 3)
 
+    -- draw players paddles
     paddleP1:render()
     paddleP2:render()
+
+    -- draw ball
     ball:render()
 
     push:finish()

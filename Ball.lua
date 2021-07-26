@@ -18,6 +18,9 @@ function Ball:render()
     love.graphics.rectangle('fill', self.x, self.y, self.side, self.side)
 end
 
+--[[
+    Re center the ball and change its speed
+]]
 function Ball:reset()
     self.x = (VIRTUAL_WIDTH - BALL_SIDE) / 2
     self.y = (VIRTUAL_HEIGHT - BALL_SIDE) / 2

@@ -58,7 +58,7 @@ function love.load()
 
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         fullscreen = false,
-        resizable = false,
+        resizable = true,
         vsync = true
     })
     
@@ -128,6 +128,14 @@ function love.draw()
 end
 
 --[[
+    Called by LOVE whenever we resize the screen
+]]
+function love.resize(w, h)
+    push:resize(w, h)
+end
+
+
+--[[
     Called  each frame by LOVE; dt will be the elapsed time
     in seconds since the last framem and we can use this to
     scale any changes in our game for even behavior across
@@ -139,7 +147,7 @@ function love.update(dt)
 
         if ball:isColliding(paddleP1) then
             love.audio.play(sounds.paddle_hit)
-            
+
             ball.dx = -ball.dx * SPEED_INCREMENT
             ball.x = paddleP1.x + PADDLE_WIDTH
 

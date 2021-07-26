@@ -7,7 +7,11 @@
     https://www.youtube.com/watch?v=GfwpRU0cT10&ab_channel=CS50
 ]]
 
-push = require "push"
+push = require 'push'
+Class = require 'class'
+
+require 'Paddle'
+require 'Ball'
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
@@ -49,11 +53,14 @@ function love.load()
     player1Score = 0
     player2Score = 0
 
-    -- paddle positions on the Y axis (movable one)
-    player1Y = 30
-    player2Y = VIRTUAL_HEIGHT - PADDLE_HEIGHT - 30
+    -- initialize ball
+    ball = Ball((VIRTUAL_WIDTH - BALL_SIDE) / 2, (VIRTUAL_HEIGHT - BALL_SIDE) / 2,
+        BALL_SIDE, BALL_SIDE)
 
-    initializeBall()
+    -- intialize paddles
+    paddleP1 = Paddle(10, 30, PADDLE_WIDTH, PADDLE_HEIGHT)
+    paddleP2 = Paddle(VIRTUAL_WIDTH - PADDLE_WIDTH - 10, 
+        VIRTUAL_HEIGHT - PADDLE_HEIGHT - 30, PADDLE_WIDTH, PADDLE_HEIGHT)
 end
 
 --[[
@@ -68,8 +75,7 @@ function love.keypressed(key)
             gameState = 'play'
         else
             gameState = 'start'
-            initializeBall()
-
+            ball:reset()
         end
     end
 end
@@ -96,16 +102,9 @@ function love.draw()
     love.graphics.print(tostring(player2Score), VIRTUAL_WIDTH / 2 + 25,
         VIRTUAL_HEIGHT / 3)
 
-    -- style, x-offset, y-offset, width, height
-    -- First paddle (left side)
-    love.graphics.rectangle('fill', 10, player1Y, PADDLE_WIDTH, PADDLE_HEIGHT)
-    
-    -- Second paddle (right side)
-    love.graphics.rectangle('fill', VIRTUAL_WIDTH - 10, player2Y, 
-        PADDLE_WIDTH, PADDLE_HEIGHT)
-
-    -- Ball (center)
-    love.graphics.rectangle('fill', ballX, ballY, BALL_SIDE, BALL_SIDE)
+    paddleP1:render()
+    paddleP2:render()
+    ball:render()
 
     push:finish()
 end
@@ -117,33 +116,30 @@ end
     frame rates
 ]]
 function love.update(dt)
-    
-    -- use min and max to limit movement outside the screen
+    -- Player 1 controls
     if love.keyboard.isDown('w') then
-        player1Y = math.max(0, player1Y - PADDLE_SPEED * dt)
+        paddleP1.dy = -PADDLE_SPEED
     elseif love.keyboard.isDown('s') then
-        player1Y = math.min(VIRTUAL_HEIGHT-PADDLE_HEIGHT , player1Y + PADDLE_SPEED * dt)
+        paddleP1.dy = PADDLE_SPEED
+    else
+        paddleP1.dy = 0
     end
-    
+
+    -- Player 2 controls
     if love.keyboard.isDown('up') then
-        player2Y = math.max(0, player2Y - PADDLE_SPEED * dt)
+        paddleP2.dy = -PADDLE_SPEED
     elseif love.keyboard.isDown('down') then
-        player2Y = math.min(VIRTUAL_HEIGHT-PADDLE_HEIGHT , player2Y + PADDLE_SPEED * dt)
+        paddleP2.dy = PADDLE_SPEED
+    else
+        paddleP2.dy = 0
     end
+
+    -- update paddles
+    paddleP1:update(dt)
+    paddleP2:update(dt)
 
     -- move the ball only when gamestate is play
     if gameState == 'play' then
-        ballX = ballX + ballDX * dt
-        ballY = ballY + ballDY * dt
+        ball:update(dt)
     end
-end
-
-function initializeBall()
-    -- recenter de ball
-    ballX = (VIRTUAL_WIDTH - BALL_SIDE) / 2
-    ballY = (VIRTUAL_HEIGHT - BALL_SIDE) / 2
-
-    -- returns either 120 or -120
-    ballDX = math.random(2) == 1 and 120 or -120
-    ballDY = math.random(-50, 50)
 end

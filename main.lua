@@ -28,6 +28,8 @@ PADDLE_SPEED = 200
 BALL_SIDE = 4
 SPEED_INCREMENT = 1.05
 
+SCORE_TO_WIN = 5
+
 --[[
     Runs when the game first starts up, only once;
     used to initialize the game
@@ -66,6 +68,7 @@ function love.load()
     player1Score = 0
     player2Score = 0
     servingPlayer = 1
+    winningPlayer = 1
 
     -- initialize gamestate
     gameState = 'start'
@@ -81,10 +84,16 @@ function love.keypressed(key)
         love.event.quit()
     elseif key == 'enter' or key == 'return' then
         if gameState == 'start' then
-            ball:reset()
+            ball:reset(servingPlayer)
             gameState = 'serve'
         elseif gameState == 'serve' then
             gameState = 'play'
+        elseif gameState == 'done' then
+            gameState = 'serve'
+            ball:reset(servingPlayer)
+            servingPlayer = winningPlayer == 1 and 2 or 1
+            player1Score = 0
+            player2Score = 0
         end
     end
 end
@@ -144,15 +153,28 @@ function love.update(dt)
     if ball.x - ball.side < 0 then
         servingPlayer = 1
         player2Score = player2Score + 1
-        ball:reset()
-        gameState = 'serve'
+
+        if player2Score == SCORE_TO_WIN then
+            winningPlayer = 2
+            gameState = 'done'
+        else
+            gameState = 'serve'
+        end
+        ball:reset(servingPlayer)
+
     end
     -- ball scored right
     if ball.x > VIRTUAL_WIDTH then
         servingPlayer = 2
         player1Score = player1Score + 1
-        ball:reset()
-        gameState = 'serve'
+        
+        if player1Score == SCORE_TO_WIN then
+            winningPlayer = 1
+            gameState = 'done'
+        else
+            gameState = 'serve'
+        end
+        ball:reset(servingPlayer)
     end
 
     -- Player 1 controls
@@ -226,5 +248,15 @@ function displayTitle()
             VIRTUAL_WIDTH, -- disponible width for display
             'center' -- alignment
         )
+    elseif gameState == 'done' then
+        if winningPlayer ~= nil then
+            love.graphics.printf(
+                'Player ' .. tostring(winningPlayer) .. ' won!\nPress Enter to play again',
+                0, -- X
+                10, -- Y
+                VIRTUAL_WIDTH, -- disponible width for display
+                'center' -- alignment
+            )
+        end
     end
 end

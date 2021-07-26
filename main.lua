@@ -49,6 +49,13 @@ function love.load()
     mediumFont = love.graphics.newFont('retro_gaming.ttf', 16);
     bigFont = love.graphics.newFont('retro_gaming.ttf', 24);
 
+    -- set up sound effect
+    sounds = {
+        ['paddle_hit'] = love.audio.newSource('sounds/paddle_hit.wav', 'static'),
+        ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
+        ['wall_hit'] = love.audio.newSource('sounds/wall_hit.wav', 'static'),
+    }
+
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         fullscreen = false,
         resizable = false,
@@ -131,6 +138,8 @@ function love.update(dt)
     if gameState == 'play' then
 
         if ball:isColliding(paddleP1) then
+            love.audio.play(sounds.paddle_hit)
+            
             ball.dx = -ball.dx * SPEED_INCREMENT
             ball.x = paddleP1.x + PADDLE_WIDTH
 
@@ -139,11 +148,19 @@ function love.update(dt)
         end
         
         if ball:isColliding(paddleP2) then
+            love.audio.play(sounds.paddle_hit)
+
             ball.dx = -ball.dx * SPEED_INCREMENT
             ball.x = paddleP2.x - BALL_SIDE
 
             -- keep velocity the same direction, but random angle
             ball:randomizeYSpeed()
+        end
+
+        -- ball is going to touch top or bottom side
+        if ball.y < 0 or ball.y + ball.side > VIRTUAL_HEIGHT  then
+            love.audio.play(sounds.wall_hit)
+            ball.dy = -ball.dy
         end
         
         ball:update(dt)
@@ -151,6 +168,8 @@ function love.update(dt)
 
     -- ball scored left
     if ball.x - ball.side < 0 then
+        love.audio.play(sounds.score)
+
         servingPlayer = 1
         player2Score = player2Score + 1
 
@@ -165,6 +184,8 @@ function love.update(dt)
     end
     -- ball scored right
     if ball.x > VIRTUAL_WIDTH then
+        love.audio.play(sounds.score)
+
         servingPlayer = 2
         player1Score = player1Score + 1
         

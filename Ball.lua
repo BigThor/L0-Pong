@@ -10,11 +10,6 @@ function Ball:init(x, y, side)
 end
 
 function Ball:update(dt)
-    -- ball is going to touch top or bottom side
-    if self.y < 0 or self.y + self.side > VIRTUAL_HEIGHT  then
-        self.dy = -self.dy
-    end
-
     self.x = self.x + self.dx * dt
     self.y = self.y + self.dy * dt
 end

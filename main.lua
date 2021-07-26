@@ -31,6 +31,9 @@ function love.load()
     -- prevents pixels to become blurry
     love.graphics.setDefaultFilter('nearest', 'nearest')
 
+    -- initialize RNG
+    math.randomseed(os.time())
+
     -- fonts
     smallFont = love.graphics.newFont('retro_gaming.ttf', 8);
     mediumFont = love.graphics.newFont('retro_gaming.ttf', 16);
@@ -50,6 +53,7 @@ function love.load()
     player1Y = 30
     player2Y = VIRTUAL_HEIGHT - PADDLE_HEIGHT - 30
 
+    initializeBall()
 end
 
 --[[
@@ -59,6 +63,14 @@ end
 function love.keypressed(key)
     if key == 'escape' then
         love.event.quit()
+    elseif key == 'enter' or key == 'return' then
+        if gameState == 'start' then
+            gameState = 'play'
+        else
+            gameState = 'start'
+            initializeBall()
+
+        end
     end
 end
 
@@ -93,8 +105,7 @@ function love.draw()
         PADDLE_WIDTH, PADDLE_HEIGHT)
 
     -- Ball (center)
-    love.graphics.rectangle('fill', (VIRTUAL_WIDTH - BALL_SIDE)/2, 
-        (VIRTUAL_HEIGHT - BALL_SIDE)/2, BALL_SIDE, BALL_SIDE)
+    love.graphics.rectangle('fill', ballX, ballY, BALL_SIDE, BALL_SIDE)
 
     push:finish()
 end
@@ -119,4 +130,20 @@ function love.update(dt)
     elseif love.keyboard.isDown('down') then
         player2Y = math.min(VIRTUAL_HEIGHT-PADDLE_HEIGHT , player2Y + PADDLE_SPEED * dt)
     end
+
+    -- move the ball only when gamestate is play
+    if gameState == 'play' then
+        ballX = ballX + ballDX * dt
+        ballY = ballY + ballDY * dt
+    end
+end
+
+function initializeBall()
+    -- recenter de ball
+    ballX = (VIRTUAL_WIDTH - BALL_SIDE) / 2
+    ballY = (VIRTUAL_HEIGHT - BALL_SIDE) / 2
+
+    -- returns either 120 or -120
+    ballDX = math.random(2) == 1 and 120 or -120
+    ballDY = math.random(-50, 50)
 end

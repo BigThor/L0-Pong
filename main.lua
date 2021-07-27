@@ -26,9 +26,14 @@ PADDLE_SPEED = 200
 
 -- Ball constants
 BALL_SIDE = 4
-SPEED_INCREMENT = 1.05
+SPEED_INCREMENT = 1.1
 
 SCORE_TO_WIN = 5
+
+-- AI related constants
+AI_FOLLOW_BALL_RADIO = PADDLE_HEIGHT / 4
+AI_SERVE_TIME = 1
+AI_REACTION_TIME = 0.09
 
 --[[
     Runs when the game first starts up, only once;
@@ -77,8 +82,12 @@ function love.load()
     servingPlayer = 1
     winningPlayer = 1
 
-    -- initialize gamestate
+    -- initialize gamestate and IA boolean
+    isAiPlaying = false
     gameState = 'start'
+
+    aiServeTimer = AI_SERVE_TIME
+    aiReactionTimer = AI_REACTION_TIME
 end
 
 --[[
@@ -89,12 +98,11 @@ function love.keypressed(key)
     -- exit game
     if key == 'escape' then
         love.event.quit()
-    elseif key == 'enter' or key == 'return' then
-        if gameState == 'start' then
-            ball:reset(servingPlayer)
-            gameState = 'serve'
-        elseif gameState == 'serve' then
+    elseif key == 'return' then
+        -- player 2 serves with enter
+        if gameState == 'serve' and servingPlayer == 2 then
             gameState = 'play'
+        -- enter replays the game in the same mode (IA or PvP)
         elseif gameState == 'done' then
             gameState = 'serve'
             ball:reset(servingPlayer)
@@ -102,7 +110,26 @@ function love.keypressed(key)
             player1Score = 0
             player2Score = 0
         end
+    elseif key == 'space' then
+        -- player 1 serves with spacebar
+        if gameState == 'serve' and servingPlayer == 1 then
+            gameState = 'play'
+        -- space returns to start state
+        elseif gameState == 'done' then
+            gameState = 'start'
+            servingPlayer = 1
+            ball:reset(servingPlayer)
+            player1Score = 0
+            player2Score = 0
+        end
+    elseif key == '1' or key == '2'then
+        if gameState == 'start' then
+            ball:reset(servingPlayer)
+            gameState = 'serve'
+            isAiPlaying = key == '1'
+        end
     end
+    
 end
 
 --[[
@@ -111,6 +138,7 @@ end
 ]]
 function love.draw()
     push:start()
+    love.graphics.clear(0.1, 0.1, 0.17, 1)
 
     displayTitle()
     displayFPS()
@@ -159,16 +187,24 @@ function love.update(dt)
             love.audio.play(sounds.paddle_hit)
 
             ball.dx = -ball.dx * SPEED_INCREMENT
-            ball.x = paddleP2.x - BALL_SIDE
+            ball.x = paddleP2.x - ball.side
 
             -- keep velocity the same direction, but random angle
             ball:randomizeYSpeed()
         end
 
         -- ball is going to touch top or bottom side
-        if ball.y < 0 or ball.y + ball.side > VIRTUAL_HEIGHT  then
+        if ball.y < 0 or ball.y + ball.side > VIRTUAL_HEIGHT then
             love.audio.play(sounds.wall_hit)
             ball.dy = -ball.dy
+
+            -- top
+            if ball.y < 0 then  
+                ball.y = 1
+            -- bottom
+            elseif ball.y + ball.side > VIRTUAL_HEIGHT  then
+                ball.y = VIRTUAL_HEIGHT - ball.side - 1
+            end
         end
         
         ball:update(dt)
@@ -216,18 +252,48 @@ function love.update(dt)
     end
 
     -- Player 2 controls
-    if love.keyboard.isDown('up') then
-        paddleP2.dy = -PADDLE_SPEED
-    elseif love.keyboard.isDown('down') then
-        paddleP2.dy = PADDLE_SPEED
+    --  disabled when against AI
+    if isAiPlaying then
+        if gameState == 'serve' and servingPlayer == 2 then
+            if aiServeTimer < 0 then
+                gameState = 'play'
+                aiServeTimer = 1
+            else
+                aiServeTimer = aiServeTimer - dt
+            end
+        end
+        -- AI actions
+        paddleYCenter = paddleP2.y + paddleP2.height / 2
+
+        -- Add reaction time to AI to ease the game
+        if aiReactionTimer < 0 then
+            -- AI tries to center paddle to ball
+            if paddleYCenter > ball.y and 
+            (paddleYCenter - ball.y) > AI_FOLLOW_BALL_RADIO then
+                paddleP2.dy = -PADDLE_SPEED
+            elseif ball.y > paddleYCenter  and 
+            (ball.y - paddleYCenter) > AI_FOLLOW_BALL_RADIO then
+                paddleP2.dy = PADDLE_SPEED
+            else
+                paddleP2.dy = 0
+                aiReactionTimer = AI_REACTION_TIME
+            end
+        else
+            aiReactionTimer = aiReactionTimer - dt
+        end
     else
-        paddleP2.dy = 0
+        if love.keyboard.isDown('up') then
+            paddleP2.dy = -PADDLE_SPEED
+        elseif love.keyboard.isDown('down') then
+            paddleP2.dy = PADDLE_SPEED
+        else
+            paddleP2.dy = 0
+        end
     end
 
     -- update paddles
     paddleP1:update(dt)
     paddleP2:update(dt)
-
 end
 
 --[[
@@ -263,15 +329,25 @@ function displayTitle()
     -- display title
     if gameState == 'start' then
         love.graphics.printf(
-            'Welcome to Pong!\nPress Enter to begin',
+            'Welcome to Pong!' ..
+            '\nPress 1 to play against AI' ..
+            '\nPress 2 to play Player vs Player',
             0, -- X
             10, -- Y
             VIRTUAL_WIDTH, -- disponible width for display
             'center' -- alignment
         )
+        love.graphics.printf(
+            'Score ' .. tostring(SCORE_TO_WIN) .. ' points to win the Game!',
+            0, -- X
+            VIRTUAL_HEIGHT - 30, -- Y
+            VIRTUAL_WIDTH, -- disponible width for display
+            'center' -- alignment
+        )
     elseif gameState == 'serve' then
         love.graphics.printf(
-            'Player 1 serve!\nPress Enter to shoot',
+            'Player '.. tostring(servingPlayer) .. ' serve!' ..
+            '\nPress ' .. (servingPlayer == 2 and 'Enter' or 'Spacebar') .. ' to shoot',
             0, -- X
             10, -- Y
             VIRTUAL_WIDTH, -- disponible width for display
@@ -280,7 +356,9 @@ function displayTitle()
     elseif gameState == 'done' then
         if winningPlayer ~= nil then
             love.graphics.printf(
-                'Player ' .. tostring(winningPlayer) .. ' won!\nPress Enter to play again',
+                'Player ' .. tostring(winningPlayer) .. ' won!'..
+                '\nPress Enter to play again' ..
+                '\nPress Spacebar to return to Start menu',
                 0, -- X
                 10, -- Y
                 VIRTUAL_WIDTH, -- disponible width for display

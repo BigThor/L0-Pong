@@ -19,6 +19,7 @@ function Paddle:update(dt)
 end
 
 function Paddle:render()
+    love.graphics.setColor(255, 255, 255, 255)
     -- style, x-offset, y-offset, width, height
     love.graphics.rectangle('fill', self.x, self.y, 
         self.width, self.height)
